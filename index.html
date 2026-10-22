@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SproutSync - Plant Care Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            950: '#022c22',
+                        },
+                        sage: {
+                            50: '#f4f7f4',
+                            100: '#e3eae3',
+                            200: '#c5d5c5',
+                            700: '#3b523b',
+                            800: '#2b3d2b',
+                            900: '#1c291c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti for watering celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.4);
+        }
+        .plant-card {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s;
+        }
+        .plant-card:hover {
+            transform: translateY(-3px);
+        }
+    </style>
+</head>
+<body class="bg-emerald-50/50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- Header Navbar -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-emerald-100 dark:border-slate-800 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo / Brand -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <i data-lucide="sprout" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-emerald-800 to-teal-600 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">SproutSync</h1>
+                    <p class="text-xs text-emerald-600/70 dark:text-emerald-400/60 font-medium hidden sm:block">Botanical Care Companion</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Controls -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Theme Toggle Button -->
+                <button id="themeToggleBtn" title="Toggle Theme" class="p-2.5 rounded-xl hover:bg-emerald-100/60 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                    <i data-lucide="sun" id="sunIcon" class="w-5 h-5 hidden"></i>
+                    <i data-lucide="moon" id="moonIcon" class="w-5 h-5"></i>
+                </button>
+
+                <!-- Reset / Sample Data -->
+                <button id="sampleDataBtn" title="Load Sample Plants" class="px-3 py-2 text-xs font-semibold rounded-xl border border-emerald-200 dark:border-slate-700 hover:bg-emerald-100/50 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-300 transition-colors hidden sm:flex items-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>Demo Data</span>
+                </button>
+
+                <!-- Add Plant Primary Button -->
+                <button id="openAddModalBtn" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-2 rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all duration-200 flex items-center gap-2 font-medium text-sm">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Add Plant</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Metrics Overview Dashboard Header -->
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div class="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800/80 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="flower-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div id="statTotal" class="text-2xl font-bold">0</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Plants</div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-rose-100 dark:border-slate-800/80 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div id="statOverdue" class="text-2xl font-bold text-rose-600 dark:text-rose-400">0</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Needs Water!</div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-amber-100 dark:border-slate-800/80 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="droplet" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div id="statDueToday" class="text-2xl font-bold text-amber-600 dark:text-amber-400">0</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Due Today</div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800/80 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div id="statHealthy" class="text-2xl font-bold text-teal-600 dark:text-teal-400">0</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">Hydrated</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filters, Search, and Sorting Bar -->
+        <section class="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-emerald-100 dark:border-slate-800 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center">
+            
+            <!-- Left: Search Box -->
+            <div class="relative flex-1 max-w-md">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="searchInput" placeholder="Search by name or species..." class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100 transition-all">
+            </div>
+
+            <!-- Right: Filters & Controls -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <!-- Location / Room Filter -->
+                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                    <select id="locationFilter" class="bg-transparent text-sm focus:outline-none cursor-pointer dark:text-slate-200">
+                        <option value="ALL">All Rooms</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
+                    <i data-lucide="filter" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                    <select id="statusFilter" class="bg-transparent text-sm focus:outline-none cursor-pointer dark:text-slate-200">
+                        <option value="ALL">All Statuses</option>
+                        <option value="OVERDUE">Overdue</option>
+                        <option value="TODAY">Due Today</option>
+                        <option value="UPCOMING">Upcoming</option>
+                    </select>
+                </div>
+
+                <!-- Sort By -->
+                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5">
+                    <i data-lucide="arrow-up-down" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                    <select id="sortBySelect" class="bg-transparent text-sm focus:outline-none cursor-pointer dark:text-slate-200">
+                        <option value="URGENCY">Sort: Needs Water First</option>
+                        <option value="NAME_ASC">Sort: Name (A-Z)</option>
+                        <option value="FREQ_ASC">Sort: Water Frequency (Shortest)</option>
+                        <option value="FREQ_DESC">Sort: Water Frequency (Longest)</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Plants Grid Section -->
+        <section>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <i data-lucide="grid" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+                    <span>Your Plants</span>
+                    <span id="plantCountBadge" class="text-xs bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-semibold px-2.5 py-0.5 rounded-full">0</span>
+                </h2>
+                <div id="quickWaterAllContainer" class="hidden">
+                    <button id="waterOverdueBtn" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 font-medium">
+                        <i data-lucide="droplets" class="w-3.5 h-3.5"></i>
+                        <span>Water All Overdue</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div id="plantsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <!-- Plant cards will be rendered dynamically here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center bg-white/60 dark:bg-slate-900/60 rounded-3xl border border-dashed border-emerald-200 dark:border-slate-800 p-8">
+                <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4 shadow-inner">
+                    <i data-lucide="leaf" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200">No Plants Found</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-6">
+                    No green friends match your current filter settings, or your garden is currently empty.
+                </p>
+                <button id="emptyStateAddBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 shadow-md transition-all">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Add Your First Plant</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Global Care Log History Drawer / Section -->
+        <section class="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="p-2 bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                        <i data-lucide="history" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 dark:text-slate-200">Recent Care Activity</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Log of recent watering sessions across your garden</p>
+                    </div>
+                </div>
+                <button id="clearHistoryBtn" class="text-xs text-slate-400 hover:text-rose-500 transition-colors hidden">Clear History</button>
+            </div>
+
+            <div id="recentHistoryList" class="divide-y divide-slate-100 dark:divide-slate-800/60 max-h-48 overflow-y-auto pr-1">
+                <!-- Log entries will be populated here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Add / Edit Plant -->
+    <div id="plantModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200 max-h-[90vh] flex flex-col">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-emerald-50/50 dark:bg-slate-800/50">
+                <div class="flex items-center gap-2.5">
+                    <i data-lucide="sprout" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+                    <h3 id="modalTitle" class="text-lg font-bold text-slate-800 dark:text-slate-100">Add New Plant</h3>
+                </div>
+                <button id="closeModalBtn" class="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="plantForm" class="p-6 space-y-4 overflow-y-auto flex-1">
+                <input type="hidden" id="plantId">
+
+                <!-- Name & Species -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Plant Name *</label>
+                        <input type="text" id="plantName" required placeholder="e.g. Monstera Deliciosa" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Species / Type</label>
+                        <input type="text" id="plantSpecies" placeholder="e.g. Swiss Cheese Plant" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100">
+                    </div>
+                </div>
+
+                <!-- Location & Frequency -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Location / Room</label>
+                        <input type="text" id="plantLocation" placeholder="e.g. Living Room, Patio" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Watering Interval (Days) *</label>
+                        <input type="number" id="plantFrequency" min="1" max="365" value="7" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100">
+                    </div>
+                </div>
+
+                <!-- Last Watered Date -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Last Watered Date *</label>
+                    <input type="date" id="plantLastWatered" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100">
+                </div>
+
+                <!-- Custom Avatar Selection / Image URL -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Plant Avatar Icon or Custom Image URL</label>
+                    <div class="flex items-center gap-3 mb-2">
+                        <!-- Icon Presets -->
+                        <div id="iconPresets" class="flex items-center gap-2">
+                            <button type="button" data-icon="🌱" class="preset-icon-btn text-xl w-9 h-9 rounded-xl border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/80 flex items-center justify-center">🌱</button>
+                            <button type="button" data-icon="🌿" class="preset-icon-btn text-xl w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center">🌿</button>
+                            <button type="button" data-icon="🪴" class="preset-icon-btn text-xl w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center">🪴</button>
+                            <button type="button" data-icon="🌵" class="preset-icon-btn text-xl w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center">🌵</button>
+                            <button type="button" data-icon="🌴" class="preset-icon-btn text-xl w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center">🌴</button>
+                            <button type="button" data-icon="🌸" class="preset-icon-btn text-xl w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-center">🌸</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="selectedIcon" value="🌱">
+                    <input type="url" id="plantImageUrl" placeholder="Optional: Image URL (https://...)" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100">
+                </div>
+
+                <!-- Care Notes -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Care Notes & Instructions</label>
+                    <textarea id="plantNotes" rows="2" placeholder="e.g. Keep away from direct afternoon sun, mist leaves occasionally..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-slate-100"></textarea>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                    <button type="button" id="cancelModalBtn" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition-colors">Cancel</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-sm font-medium shadow-md shadow-emerald-600/20 transition-all">Save Plant</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Plant Details & History -->
+    <div id="detailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200 max-h-[90vh] flex flex-col">
+            
+            <!-- Detail Header Image or Graphic -->
+            <div id="detailHeaderBg" class="h-36 relative bg-gradient-to-r from-emerald-600 to-teal-700 flex items-end p-4">
+                <button id="closeDetailModalBtn" class="absolute top-3 right-3 p-1.5 rounded-full bg-black/30 hover:bg-black/50 text-white transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+                <div class="flex items-end gap-3 z-10">
+                    <div id="detailAvatarContainer" class="w-20 h-20 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-lg flex items-center justify-center text-4xl border-2 border-white dark:border-slate-800 overflow-hidden shrink-0">
+                        <!-- Icon or Image -->
+                    </div>
+                    <div class="text-white pb-1">
+                        <h2 id="detailName" class="text-xl font-bold leading-tight"></h2>
+                        <p id="detailSpecies" class="text-xs text-emerald-100 font-medium"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <!-- Status Banner -->
+                <div id="detailStatusBanner" class="p-3.5 rounded-2xl flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i id="detailStatusIcon" class="w-5 h-5"></i>
+                        <div>
+                            <div id="detailStatusText" class="font-bold text-sm"></div>
+                            <div id="detailDueDateText" class="text-xs opacity-80"></div>
+                        </div>
+                    </div>
+                    <button id="detailWaterNowBtn" class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 px-3 py-1.5 rounded-xl font-semibold text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+                        <i data-lucide="droplet" class="w-3.5 h-3.5 text-blue-500"></i>
+                        <span>Water Now</span>
+                    </button>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <span class="text-xs text-slate-400 block font-medium">Watering Interval</span>
+                        <span id="detailFrequency" class="font-semibold text-slate-700 dark:text-slate-200"></span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <span class="text-xs text-slate-400 block font-medium">Location</span>
+                        <span id="detailLocation" class="font-semibold text-slate-700 dark:text-slate-200"></span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <span class="text-xs text-slate-400 block font-medium">Last Watered</span>
+                        <span id="detailLastWatered" class="font-semibold text-slate-700 dark:text-slate-200"></span>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                        <span class="text-xs text-slate-400 block font-medium">Next Care Date</span>
+                        <span id="detailNextWatered" class="font-semibold text-slate-700 dark:text-slate-200"></span>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="space-y-1">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Care Notes</h4>
+                    <p id="detailNotes" class="text-sm bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/80 text-slate-600 dark:text-slate-300 italic"></p>
+                </div>
+
+                <!-- Plant Specific History Logs -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Watering History</span>
+                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                    </h4>
+                    <div id="detailHistoryList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        <!-- Rendered history logs -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Footer Controls -->
+            <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+                <button id="deletePlantBtn" class="text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-2 rounded-xl transition-colors flex items-center gap-1 font-medium">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Delete Plant</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <button id="editPlantBtn" class="text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 px-3 py-2 rounded-xl transition-colors font-medium flex items-center gap-1">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <span>Edit Details</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-950/80 w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center transform scale-95 transition-transform duration-200 space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+                <i data-lucide="trash-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Delete Plant?</h3>
+                <p id="deleteConfirmText" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Are you sure you want to remove this plant from your garden?</p>
+            </div>
+            <div class="flex items-center justify-center gap-3 pt-2">
+                <button id="cancelDeleteBtn" class="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn" class="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-rose-600/20 transition-all">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // Sample default plant dataset
+        const DEFAULT_PLANTS = [
+            {
+                id: 'plant-1',
+                name: 'Monstera Deliciosa',
+                species: 'Swiss Cheese Plant',
+                location: 'Living Room',
+                frequency: 7,
+                lastWatered: getRelativeDateStr(-8), // Overdue by 1 day
+                icon: '🌿',
+                imageUrl: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?auto=format&fit=crop&w=600&q=80',
+                notes: 'Loves bright indirect light. Clean leaves periodically with wet cloth.'
+            },
+            {
+                id: 'plant-2',
+                name: 'Snake Plant',
+                species: 'Sansevieria Trifasciata',
+                location: 'Bedroom',
+                frequency: 14,
+                lastWatered: getRelativeDateStr(-14), // Due today
+                icon: '🌵',
+                imageUrl: 'https://images.unsplash.com/photo-1593482892290-f54927ae1bf6?auto=format&fit=crop&w=600&q=80',
+                notes: 'Extremely drought tolerant. Let soil dry completely between waterings.'
+            },
+            {
+                id: 'plant-3',
+                name: 'Peace Lily',
+                species: 'Spathiphyllum',
+                location: 'Office',
+                frequency: 5,
+                lastWatered: getRelativeDateStr(-2), // Healthy / Upcoming
+                icon: '🌸',
+                imageUrl: 'https://images.unsplash.com/photo-1593691509543-c55fb32e7355?auto=format&fit=crop&w=600&q=80',
+                notes: 'Droops dramatically when thirsty. Prefers higher humidity.'
+            },
+            {
+                id: 'plant-4',
+                name: 'Golden Pothos',
+                species: 'Epipremnum Aureum',
+                location: 'Kitchen',
+                frequency: 6,
+                lastWatered: getRelativeDateStr(-1), // Healthy
+                icon: '🌱',
+                imageUrl: '',
+                notes: 'Great trailing plant. Easy to propagate from stem cuttings in water.'
+            }
+        ];
+
+        // Sample initial history log entries
+        const DEFAULT_HISTORY = [
+            { plantId: 'plant-1', plantName: 'Monstera Deliciosa', date: getRelativeDateStr(-8) },
+            { plantId: 'plant-2', plantName: 'Snake Plant', date: getRelativeDateStr(-14) },
+            { plantId: 'plant-3', plantName: 'Peace Lily', date: getRelativeDateStr(-2) },
+            { plantId: 'plant-4', plantName: 'Golden Pothos', date: getRelativeDateStr(-1) }
+        ];
+
+        // Global State
+        let plants = [];
+        let historyLogs = [];
+        let currentDetailPlantId = null;
+        let plantToDeleteId = null;
+
+        // Helper date utility functions
+        function getRelativeDateStr(daysOffset) {
+            const date = new Date();
+            date.setDate(date.getDate() + daysOffset);
+            return date.toISOString().split('T')[0];
+        }
+
+        function calculateNextWaterDate(lastWateredDateStr, frequencyDays) {
+            const lastDate = new Date(lastWateredDateStr + 'T00:00:00');
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(lastDate.getDate() + parseInt(frequencyDays));
+            return nextDate;
+        }
+
+        function getDaysUntilDue(lastWateredDateStr, frequencyDays) {
+            const nextDate = calculateNextWaterDate(lastWateredDateStr, frequencyDays);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const diffTime = nextDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        function getPlantStatus(daysUntil) {
+            if (daysUntil < 0) return 'OVERDUE';
+            if (daysUntil === 0) return 'TODAY';
+            return 'UPCOMING';
+        }
+
+        function formatDateReadable(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        // Initialize App State
+        function initApp() {
+            // Dark Mode setup
+            const savedTheme = localStorage.getItem('sproutsync_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                document.documentElement.classList.remove('light');
+            } else {
+                document.documentElement.classList.add('light');
+                document.documentElement.classList.remove('dark');
+            }
+            updateThemeIcons();
+
+            // LocalStorage Data Fetch
+            const storedPlants = localStorage.getItem('sproutsync_plants');
+            const storedHistory = localStorage.getItem('sproutsync_history');
+
+            if (storedPlants) {
+                try {
+                    plants = JSON.parse(storedPlants);
+                } catch(e) {
+                    plants = [...DEFAULT_PLANTS];
+                }
+            } else {
+                plants = [...DEFAULT_PLANTS];
+                savePlantsToStorage();
+            }
+
+            if (storedHistory) {
+                try {
+                    historyLogs = JSON.parse(storedHistory);
+                } catch(e) {
+                    historyLogs = [...DEFAULT_HISTORY];
+                }
+            } else {
+                historyLogs = [...DEFAULT_HISTORY];
+                saveHistoryToStorage();
+            }
+
+            // Bind Event Handlers
+            setupEventListeners();
+
+            // Populate Location Dropdown Options & Render Interface
+            populateLocationFilter();
+            renderApp();
+        }
+
+        function savePlantsToStorage() {
+            localStorage.setItem('sproutsync_plants', JSON.stringify(plants));
+        }
+
+        function saveHistoryToStorage() {
+            localStorage.setItem('sproutsync_history', JSON.stringify(historyLogs));
+        }
+
+        // Theme Toggle Handler
+        function updateThemeIcons() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            if (isDark) {
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+                localStorage.setItem('sproutsync_theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                document.documentElement.classList.remove('light');
+                localStorage.setItem('sproutsync_theme', 'dark');
+            }
+            updateThemeIcons();
+        }
+
+        // Setup DOM event listeners
+        function setupEventListeners() {
+            document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+            document.getElementById('sampleDataBtn').addEventListener('click', () => {
+                if (confirm('Load demo plant data? This will reset your current list.')) {
+                    plants = [...DEFAULT_PLANTS];
+                    historyLogs = [...DEFAULT_HISTORY];
+                    savePlantsToStorage();
+                    saveHistoryToStorage();
+                    populateLocationFilter();
+                    renderApp();
+                }
+            });
+
+            // Search and Filters listeners
+            document.getElementById('searchInput').addEventListener('input', renderPlantsGrid);
+            document.getElementById('locationFilter').addEventListener('change', renderPlantsGrid);
+            document.getElementById('statusFilter').addEventListener('change', renderPlantsGrid);
+            document.getElementById('sortBySelect').addEventListener('change', renderPlantsGrid);
+
+            // Water Overdue batch action
+            document.getElementById('waterOverdueBtn').addEventListener('click', waterAllOverdue);
+
+            // Modal Trigger buttons
+            document.getElementById('openAddModalBtn').addEventListener('click', () => openPlantModal());
+            document.getElementById('emptyStateAddBtn').addEventListener('click', () => openPlantModal());
+            document.getElementById('closeModalBtn').addEventListener('click', closePlantModal);
+            document.getElementById('cancelModalBtn').addEventListener('click', closePlantModal);
+
+            // Form Submit Listener
+            document.getElementById('plantForm').addEventListener('submit', handlePlantFormSubmit);
+
+            // Preset Icon selector buttons
+            document.querySelectorAll('.preset-icon-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.preset-icon-btn').forEach(b => {
+                        b.classList.remove('border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/80');
+                        b.classList.add('border-slate-200', 'dark:border-slate-700');
+                    });
+                    const target = e.currentTarget;
+                    target.classList.remove('border-slate-200', 'dark:border-slate-700');
+                    target.classList.add('border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/80');
+                    document.getElementById('selectedIcon').value = target.dataset.icon;
+                });
+            });
+
+            // Plant Detail Modal actions
+            document.getElementById('closeDetailModalBtn').addEventListener('click', closeDetailModal);
+            document.getElementById('deletePlantBtn').addEventListener('click', () => {
+                if (currentDetailPlantId) {
+                    promptDeletePlant(currentDetailPlantId);
+                }
+            });
+            
+            // Delete modal handlers
+            document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', executeDeletePlant);
+
+            document.getElementById('editPlantBtn').addEventListener('click', () => {
+                const plant = plants.find(p => p.id === currentDetailPlantId);
+                if (plant) {
+                    closeDetailModal();
+                    openPlantModal(plant);
+                }
+            });
+            document.getElementById('detailWaterNowBtn').addEventListener('click', () => {
+                if (currentDetailPlantId) {
+                    waterPlant(currentDetailPlantId);
+                    // Re-render detail modal
+                    const updated = plants.find(p => p.id === currentDetailPlantId);
+                    if (updated) openDetailModal(updated);
+                }
+            });
+
+            document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+                if (confirm('Clear all watering logs history?')) {
+                    historyLogs = [];
+                    saveHistoryToStorage();
+                    renderHistoryLogs();
+                }
+            });
+        }
+
+        // Dynamic Location Options
+        function populateLocationFilter() {
+            const select = document.getElementById('locationFilter');
+            const currentVal = select.value;
+            const locations = Array.from(new Set(plants.map(p => p.location).filter(Boolean)));
+            
+            select.innerHTML = '<option value="ALL">All Rooms</option>';
+            locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc;
+                opt.textContent = loc;
+                select.appendChild(opt);
+            });
+
+            if (locations.includes(currentVal)) {
+                select.value = currentVal;
+            } else {
+                select.value = 'ALL';
+            }
+        }
+
+        // Render Entire Application
+        function renderApp() {
+            renderDashboardStats();
+            renderPlantsGrid();
+            renderHistoryLogs();
+            lucide.createIcons();
+        }
+
+        // Dashboard Stats Counter
+        function renderDashboardStats() {
+            const total = plants.length;
+            let overdue = 0;
+            let dueToday = 0;
+            let healthy = 0;
+
+            plants.forEach(plant => {
+                const days = getDaysUntilDue(plant.lastWatered, plant.frequency);
+                const status = getPlantStatus(days);
+                if (status === 'OVERDUE') overdue++;
+                else if (status === 'TODAY') dueToday++;
+                else healthy++;
+            });
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statOverdue').textContent = overdue;
+            document.getElementById('statDueToday').textContent = dueToday;
+            document.getElementById('statHealthy').textContent = healthy;
+
+            const quickWaterContainer = document.getElementById('quickWaterAllContainer');
+            if (overdue > 0) {
+                quickWaterContainer.classList.remove('hidden');
+            } else {
+                quickWaterContainer.classList.add('hidden');
+            }
+        }
+
+        // Main Plant Grid Rendering
+        function renderPlantsGrid() {
+            const grid = document.getElementById('plantsGrid');
+            const emptyState = document.getElementById('emptyState');
+            const countBadge = document.getElementById('plantCountBadge');
+
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+            const locationVal = document.getElementById('locationFilter').value;
+            const statusVal = document.getElementById('statusFilter').value;
+            const sortVal = document.getElementById('sortBySelect').value;
+
+            // Filter plants
+            let filtered = plants.filter(plant => {
+                const matchesSearch = plant.name.toLowerCase().includes(searchQuery) || 
+                                     (plant.species && plant.species.toLowerCase().includes(searchQuery));
+                
+                const matchesLocation = locationVal === 'ALL' || plant.location === locationVal;
+
+                const daysUntil = getDaysUntilDue(plant.lastWatered, plant.frequency);
+                const status = getPlantStatus(daysUntil);
+                const matchesStatus = statusVal === 'ALL' || status === statusVal;
+
+                return matchesSearch && matchesLocation && matchesStatus;
+            });
+
+            // Sort plants
+            filtered.sort((a, b) => {
+                const daysA = getDaysUntilDue(a.lastWatered, a.frequency);
+                const daysB = getDaysUntilDue(b.lastWatered, b.frequency);
+
+                if (sortVal === 'URGENCY') {
+                    return daysA - daysB; // Smallest / most negative days first
+                } else if (sortVal === 'NAME_ASC') {
+                    return a.name.localeCompare(b.name);
+                } else if (sortVal === 'FREQ_ASC') {
+                    return parseInt(a.frequency) - parseInt(b.frequency);
+                } else if (sortVal === 'FREQ_DESC') {
+                    return parseInt(b.frequency) - parseInt(a.frequency);
+                }
+                return 0;
+            });
+
+            countBadge.textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            grid.innerHTML = filtered.map(plant => createPlantCardHTML(plant)).join('');
+            
+            // Re-initialize Lucide Icons for dynamic content
+            lucide.createIcons();
+        }
+
+        // Plant Card HTML Template Generator
+        function createPlantCardHTML(plant) {
+            const daysUntil = getDaysUntilDue(plant.lastWatered, plant.frequency);
+            const status = getPlantStatus(daysUntil);
+
+            // Badge status configurations
+            let badgeClass = '';
+            let badgeText = '';
+            let badgeIcon = '';
+
+            if (status === 'OVERDUE') {
+                const overdueDays = Math.abs(daysUntil);
+                badgeClass = 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border-rose-200 dark:border-rose-900';
+                badgeText = overdueDays === 1 ? '1 Day Overdue' : `${overdueDays} Days Overdue`;
+                badgeIcon = 'alert-triangle';
+            } else if (status === 'TODAY') {
+                badgeClass = 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-900';
+                badgeText = 'Due Today';
+                badgeIcon = 'clock';
+            } else {
+                badgeClass = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900';
+                badgeText = `In ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`;
+                badgeIcon = 'check-circle';
+            }
+
+            // Compute Progress percentage indicator for water lifecycle
+            const lastDate = new Date(plant.lastWatered + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const elapsedDays = Math.max(0, Math.floor((today - lastDate) / (1000 * 60 * 60 * 24)));
+            let progressPct = Math.min(100, Math.round((elapsedDays / plant.frequency) * 100));
+
+            let barColorClass = 'bg-emerald-500';
+            if (status === 'OVERDUE') barColorClass = 'bg-rose-500';
+            else if (status === 'TODAY') barColorClass = 'bg-amber-500';
+
+            return `
+                <div class="plant-card bg-white dark:bg-slate-900 border border-emerald-100/80 dark:border-slate-800 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all relative flex flex-col justify-between group">
+                    <div>
+                        <!-- Card Header: Image/Icon, Info & Direct Delete Action -->
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                            <div onclick="openDetailModalById('${plant.id}')" class="cursor-pointer flex items-center gap-3 flex-1 overflow-hidden">
+                                <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-slate-800 border border-emerald-100 dark:border-slate-700 flex items-center justify-center text-2xl overflow-hidden shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+                                    ${plant.imageUrl ? 
+                                        `<img src="${plant.imageUrl}" alt="${plant.name}" class="w-full h-full object-cover" onerror="this.onerror=null; this.parentNode.innerHTML='${plant.icon || '🌱'}';">` : 
+                                        (plant.icon || '🌱')}
+                                </div>
+                                <div class="overflow-hidden flex-1">
+                                    <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">${plant.name}</h3>
+                                    <p class="text-xs text-slate-400 truncate">${plant.species || 'Indoor Plant'}</p>
+                                    ${plant.location ? `<span class="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-500"></i>${plant.location}</span>` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Trash Delete Action Button on Card -->
+                            <button onclick="promptDeletePlant('${plant.id}', event)" title="Delete Plant" class="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Status Badge -->
+                        <div class="my-3 flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeClass}">
+                                <i data-lucide="${badgeIcon}" class="w-3.5 h-3.5"></i>
+                                <span>${badgeText}</span>
+                            </span>
+                            <span class="text-xs text-slate-400 font-medium">Every ${plant.frequency}d</span>
+                        </div>
+
+                        <!-- Care Bar Progress -->
+                        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mb-4 overflow-hidden">
+                            <div class="${barColorClass} h-1.5 rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                        <button onclick="openDetailModalById('${plant.id}')" class="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            Details
+                        </button>
+                        
+                        <button onclick="waterPlant('${plant.id}', event)" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 active:scale-95">
+                            <i data-lucide="droplet" class="w-3.5 h-3.5"></i>
+                            <span>Water Now</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Log History Render
+        function renderHistoryLogs() {
+            const list = document.getElementById('recentHistoryList');
+            const clearBtn = document.getElementById('clearHistoryBtn');
+
+            if (historyLogs.length === 0) {
+                list.innerHTML = `<div class="text-xs text-slate-400 text-center py-4">No watering activity recorded yet.</div>`;
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+
+            // Render top 15 most recent logs
+            const sortedLogs = [...historyLogs].reverse().slice(0, 15);
+
+            list.innerHTML = sortedLogs.map(log => `
+                <div class="py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-500 flex items-center justify-center shrink-0">
+                            <i data-lucide="droplet" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-slate-700 dark:text-slate-200">${log.plantName}</span>
+                            <span class="text-slate-400 block text-[11px]">Watered successfully</span>
+                        </div>
+                    </div>
+                    <span class="text-slate-400 font-medium">${formatDateReadable(log.date)}</span>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        // Action: Water Plant Event
+        function waterPlant(plantId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            const plant = plants.find(p => p.id === plantId);
+            if (!plant) return;
+
+            const todayStr = getRelativeDateStr(0);
+            plant.lastWatered = todayStr;
+
+            // Log activity
+            historyLogs.push({
+                plantId: plant.id,
+                plantName: plant.name,
+                date: todayStr
+            });
+
+            savePlantsToStorage();
+            saveHistoryToStorage();
+            renderApp();
+
+            // Trigger confetti effect
+            if (window.confetti) {
+                try {
+                    confetti({
+                        particleCount: 30,
+                        spread: 50,
+                        origin: { y: 0.8 },
+                        colors: ['#10b981', '#3b82f6', '#34d399']
+                    });
+                } catch(e) {}
+            }
+        }
+
+        // Action: Water All Overdue Plants
+        function waterAllOverdue() {
+            const todayStr = getRelativeDateStr(0);
+            let updatedCount = 0;
+
+            plants.forEach(plant => {
+                const days = getDaysUntilDue(plant.lastWatered, plant.frequency);
+                if (days < 0) {
+                    plant.lastWatered = todayStr;
+                    historyLogs.push({
+                        plantId: plant.id,
+                        plantName: plant.name,
+                        date: todayStr
+                    });
+                    updatedCount++;
+                }
+            });
+
+            if (updatedCount > 0) {
+                savePlantsToStorage();
+                saveHistoryToStorage();
+                renderApp();
+
+                if (window.confetti) {
+                    confetti({
+                        particleCount: 60,
+                        spread: 70,
+                        origin: { y: 0.7 },
+                        colors: ['#10b981', '#3b82f6']
+                    });
+                }
+            }
+        }
+
+        // Plant Modal Management (Add / Edit)
+        function openPlantModal(plantToEdit = null) {
+            const modal = document.getElementById('plantModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('plantForm');
+
+            form.reset();
+
+            if (plantToEdit) {
+                title.textContent = 'Edit Plant Details';
+                document.getElementById('plantId').value = plantToEdit.id;
+                document.getElementById('plantName').value = plantToEdit.name;
+                document.getElementById('plantSpecies').value = plantToEdit.species || '';
+                document.getElementById('plantLocation').value = plantToEdit.location || '';
+                document.getElementById('plantFrequency').value = plantToEdit.frequency;
+                document.getElementById('plantLastWatered').value = plantToEdit.lastWatered;
+                document.getElementById('plantImageUrl').value = plantToEdit.imageUrl || '';
+                document.getElementById('plantNotes').value = plantToEdit.notes || '';
+                document.getElementById('selectedIcon').value = plantToEdit.icon || '🌱';
+
+                // Select matching preset icon UI
+                document.querySelectorAll('.preset-icon-btn').forEach(b => {
+                    if (b.dataset.icon === plantToEdit.icon) {
+                        b.classList.remove('border-slate-200', 'dark:border-slate-700');
+                        b.classList.add('border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/80');
+                    } else {
+                        b.classList.remove('border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-950/80');
+                        b.classList.add('border-slate-200', 'dark:border-slate-700');
+                    }
+                });
+            } else {
+                title.textContent = 'Add New Plant';
+                document.getElementById('plantId').value = '';
+                document.getElementById('plantLastWatered').value = getRelativeDateStr(0);
+                document.getElementById('selectedIcon').value = '🌱';
+            }
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            const innerModal = modal.firstElementChild;
+            innerModal.classList.remove('scale-95');
+            innerModal.classList.add('scale-100');
+        }
+
+        function closePlantModal() {
+            const modal = document.getElementById('plantModal');
+            const innerModal = modal.firstElementChild;
+            innerModal.classList.remove('scale-100');
+            innerModal.classList.add('scale-95');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function handlePlantFormSubmit(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('plantId').value;
+            const name = document.getElementById('plantName').value.trim();
+            const species = document.getElementById('plantSpecies').value.trim();
+            const location = document.getElementById('plantLocation').value.trim();
+            const frequency = parseInt(document.getElementById('plantFrequency').value);
+            const lastWatered = document.getElementById('plantLastWatered').value;
+            const icon = document.getElementById('selectedIcon').value;
+            const imageUrl = document.getElementById('plantImageUrl').value.trim();
+            const notes = document.getElementById('plantNotes').value.trim();
+
+            if (id) {
+                // Update existing
+                const index = plants.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    plants[index] = { id, name, species, location, frequency, lastWatered, icon, imageUrl, notes };
+                }
+            } else {
+                // Create new plant
+                const newPlant = {
+                    id: 'plant-' + Date.now(),
+                    name,
+                    species,
+                    location,
+                    frequency,
+                    lastWatered,
+                    icon,
+                    imageUrl,
+                    notes
+                };
+                plants.push(newPlant);
+            }
+
+            savePlantsToStorage();
+            populateLocationFilter();
+            renderApp();
+            closePlantModal();
+        }
+
+        // Open Plant Detail View
+        function openDetailModalById(plantId) {
+            const plant = plants.find(p => p.id === plantId);
+            if (plant) {
+                openDetailModal(plant);
+            }
+        }
+
+        function openDetailModal(plant) {
+            currentDetailPlantId = plant.id;
+            const modal = document.getElementById('detailModal');
+
+            document.getElementById('detailName').textContent = plant.name;
+            document.getElementById('detailSpecies').textContent = plant.species || 'Unspecified Species';
+
+            // Avatar container
+            const avatarContainer = document.getElementById('detailAvatarContainer');
+            if (plant.imageUrl) {
+                avatarContainer.innerHTML = `<img src="${plant.imageUrl}" alt="${plant.name}" class="w-full h-full object-cover rounded-xl" onerror="this.onerror=null; this.parentNode.innerHTML='${plant.icon || '🌱'}';">`;
+            } else {
+                avatarContainer.textContent = plant.icon || '🌱';
+            }
+
+            // Calculations
+            const daysUntil = getDaysUntilDue(plant.lastWatered, plant.frequency);
+            const status = getPlantStatus(daysUntil);
+            const nextDate = calculateNextWaterDate(plant.lastWatered, plant.frequency);
+
+            // Banner
+            const banner = document.getElementById('detailStatusBanner');
+            const bannerText = document.getElementById('detailStatusText');
+            const bannerSub = document.getElementById('detailDueDateText');
+            const bannerIcon = document.getElementById('detailStatusIcon');
+
+            if (status === 'OVERDUE') {
+                banner.className = 'p-3.5 rounded-2xl flex items-center justify-between bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-900';
+                bannerText.textContent = `Watering Overdue by ${Math.abs(daysUntil)} Day(s)`;
+                bannerSub.textContent = `Was due on ${formatDateReadable(nextDate.toISOString().split('T')[0])}`;
+                bannerIcon.setAttribute('data-lucide', 'alert-circle');
+            } else if (status === 'TODAY') {
+                banner.className = 'p-3.5 rounded-2xl flex items-center justify-between bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-900';
+                bannerText.textContent = 'Needs Water Today';
+                bannerSub.textContent = 'Scheduled for today';
+                bannerIcon.setAttribute('data-lucide', 'clock');
+            } else {
+                banner.className = 'p-3.5 rounded-2xl flex items-center justify-between bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-900';
+                bannerText.textContent = `Hydrated (${daysUntil} days left)`;
+                bannerSub.textContent = `Next due on ${formatDateReadable(nextDate.toISOString().split('T')[0])}`;
+                bannerIcon.setAttribute('data-lucide', 'check-circle-2');
+            }
+
+            document.getElementById('detailFrequency').textContent = `Every ${plant.frequency} days`;
+            document.getElementById('detailLocation').textContent = plant.location || 'Not specified';
+            document.getElementById('detailLastWatered').textContent = formatDateReadable(plant.lastWatered);
+            document.getElementById('detailNextWatered').textContent = formatDateReadable(nextDate.toISOString().split('T')[0]);
+            document.getElementById('detailNotes').textContent = plant.notes || 'No specific notes recorded for this plant.';
+
+            // Render plant specific history logs
+            const plantHistory = historyLogs.filter(h => h.plantId === plant.id).reverse();
+            const historyContainer = document.getElementById('detailHistoryList');
+
+            if (plantHistory.length === 0) {
+                historyContainer.innerHTML = `<div class="text-xs text-slate-400 italic">No past watering logs recorded yet.</div>`;
+            } else {
+                historyContainer.innerHTML = plantHistory.map(h => `
+                    <div class="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800/40 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <span class="text-slate-600 dark:text-slate-300 font-medium">Watering Session</span>
+                        <span class="text-slate-400">${formatDateReadable(h.date)}</span>
+                    </div>
+                `).join('');
+            }
+
+            lucide.createIcons();
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            const innerModal = modal.firstElementChild;
+            innerModal.classList.remove('scale-95');
+            innerModal.classList.add('scale-100');
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detailModal');
+            const innerModal = modal.firstElementChild;
+            innerModal.classList.remove('scale-100');
+            innerModal.classList.add('scale-95');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            currentDetailPlantId = null;
+        }
+
+        // Prompt Delete Flow
+        function promptDeletePlant(plantId, event) {
+            if (event) event.stopPropagation();
+            const plant = plants.find(p => p.id === plantId);
+            if (!plant) return;
+
+            plantToDeleteId = plantId;
+            document.getElementById('deleteConfirmText').textContent = `Are you sure you want to remove "${plant.name}" from your garden?`;
+
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            const innerModal = modal.firstElementChild;
+            innerModal.classList.remove('scale-95');
+            innerModal.classList.add('scale-100');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            const innerModal = modal.firstElementChild;
+            innerModal.classList.remove('scale-100');
+            innerModal.classList.add('scale-95');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            plantToDeleteId = null;
+        }
+
+        function executeDeletePlant() {
+            if (!plantToDeleteId) return;
+
+            const targetId = plantToDeleteId;
+
+            // Remove plant from array
+            plants = plants.filter(p => p.id !== targetId);
+            // Clean up history logs associated with deleted plant
+            historyLogs = historyLogs.filter(h => h.plantId !== targetId);
+
+            savePlantsToStorage();
+            saveHistoryToStorage();
+
+            // Close modals if open
+            closeDeleteModal();
+            if (currentDetailPlantId === targetId) {
+                closeDetailModal();
+            }
+
+            // Update filters and layout
+            populateLocationFilter();
+            renderApp();
+        }
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
